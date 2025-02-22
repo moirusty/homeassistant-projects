@@ -13,6 +13,8 @@
 esphome:
   name: "kitchen-panel"
   friendly_name: "kitchen-panel"
+  platformio_options:
+    build_flags: "-DBOARD_HAS_PSRAM"
 
 esp32:
   board: esp32dev
@@ -294,6 +296,20 @@ sensor:
             format: "%.2f"
             args: [ 'x' ]
 
+  # Current usage
+  - platform: homeassistant
+    id: grid_current_usage_ha
+    entity_id: sensor.energy_grid_current_usage
+    on_value:
+      - lvgl.indicator.update:
+          id: grid_current_usage_val
+          value: !lambda return x;
+      - lvgl.label.update:
+          id: grid_current_usage_txt
+          text:
+            format: "%.2f kW"
+            args: [ 'x' ]
+
   # Hot tub set temp text value
   - platform: homeassistant
     id: hot_tub_set_temp_ha
@@ -332,6 +348,20 @@ sensor:
           text:
             format: "%.0f dBm"
             args: [ 'x' ] 
+
+  # UV Now
+  - platform: homeassistant
+    id: arpansa_uv_melbourne_ha
+    entity_id: sensor.arpansa_uv_melbourne
+    on_value:
+      - lvgl.indicator.update:
+          id: arpansa_uv_melbourne_val
+          value: !lambda return x;
+      - lvgl.label.update:
+          id: arpansa_uv_melbourne_txt
+          text:
+            format: "%.1f"
+            args: [ 'x' ]
 
 #
 # Binary sensors to load from HA
@@ -454,11 +484,16 @@ text_sensor:
             text: 
               format: "%s"
               args: [ 'id(wifi_ssid_sy).state.c_str()' ] 
+
 #
 # Define fonts
 # ============
 font:
 
+  - file: "fonts/RobotoCondensed-Regular.ttf"
+    id: robotto_48
+    size: 48
+    bpp: 4
   - file: "fonts/RobotoCondensed-Regular.ttf"
     id: roboto_22
     size: 22
@@ -813,6 +848,150 @@ lvgl:
                         id: diagnostic_obj
                         hidden: true
 
+    # Energy Usage Page
+    - id: energy_usage
+    
+      widgets:
+        - obj:
+            height: 300
+            width: 300
+            align: CENTER
+            bg_color: 0x1c1c1c
+            border_width: 0
+            pad_all: 4
+            widgets:
+              - meter:
+                  height: 100%
+                  width: 100%
+                  border_width: 0
+                  bg_opa: TRANSP
+                  align: CENTER
+                  scales:
+                    - range_from: -7
+                      range_to: 5
+                      angle_range: 180 # sets the total angle to 180 = starts mid left and ends mid right
+                      ticks:
+                        count: 0
+                      indicators:
+                        - line:
+                            id: grid_current_usage_val
+                            width: 8
+                            color: 0xffffff
+                            r_mod: 12 # sets line length by this much difference from the scale default radius
+                            value: -2
+                        - arc: # green
+                            color: 0x00FF00
+                            r_mod: 10 # radius difference from the scale default radius
+                            width: 31
+                            start_value: -7
+                            end_value: -1
+                        - arc: # yellow
+                            color: 0xFFFF00
+                            r_mod: 10
+                            width: 31
+                            start_value: -1
+                            end_value: 0
+                        - arc: # red
+                            color: 0xff0000
+                            r_mod: 10
+                            width: 31
+                            start_value: 0
+                            end_value: 5
+              - obj: # to cover the middle part of meter indicator line
+                  height: 146
+                  width: 146
+                  radius: 73
+                  align: CENTER
+                  border_width: 0
+                  bg_color: 0x1c1c1c
+                  pad_all: 0
+              - label: # gauge numeric indicator
+                  id: grid_current_usage_txt
+                  text_font: robotto_48
+                  align: CENTER
+                  y: -18
+                  text: "0"
+              - label: # gauge numeric indicator
+                  align: CENTER
+                  y: +20
+                  text: "Energy Usage"
+
+                      # Energy Usage Page
+    # Weather Page
+    - id: weather
+    
+      widgets:
+        - obj:
+            height: 300
+            width: 300
+            align: CENTER
+            bg_color: 0x1c1c1c
+            border_width: 0
+            pad_all: 4
+            widgets:
+              - meter:
+                  height: 100%
+                  width: 100%
+                  border_width: 0
+                  bg_opa: TRANSP
+                  align: CENTER
+                  scales:
+                    - range_from: 0
+                      range_to: 14
+                      angle_range: 180 # sets the total angle to 180 = starts mid left and ends mid right
+                      ticks:
+                        count: 0
+                      indicators:
+                        - line:
+                            id: arpansa_uv_melbourne_val
+                            width: 8
+                            color: 0xffffff
+                            r_mod: 12 # sets line length by this much difference from the scale default radius
+                            value: -2
+                        - arc: # low - greeen
+                            color: 0x00FF00
+                            r_mod: 10 # radius difference from the scale default radius
+                            width: 31
+                            start_value: 0
+                            end_value: 2.5
+                        - arc: # moderate - yellow
+                            color: 0xFFFF00
+                            r_mod: 10
+                            width: 31
+                            start_value: 2.5
+                            end_value: 5.5
+                        - arc: # high - orange
+                            color: 0xffa500
+                            r_mod: 10
+                            width: 31
+                            start_value: 5.5
+                            end_value: 7.5
+                        - arc: # very high - red
+                            color: 0xff0000
+                            r_mod: 10
+                            width: 31
+                            start_value: 7.5
+                            end_value: 14
+
+              - obj: # to cover the middle part of meter indicator line
+                  height: 146
+                  width: 146
+                  radius: 73
+                  align: CENTER
+                  border_width: 0
+                  bg_color: 0x1c1c1c
+                  pad_all: 0
+              - label: # gauge numeric indicator
+                  id: arpansa_uv_melbourne_txt
+                  text_font: robotto_48
+                  align: CENTER
+                  y: -18
+                  text: "0"
+              - label: # gauge numeric indicator
+                  align: CENTER
+                  y: +20
+                  text: "ARPANSA UV Melbourne"
+    
     # Light switch page
     - id: light_switch_page
       widgets:
